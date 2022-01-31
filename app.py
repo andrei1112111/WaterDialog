@@ -5,7 +5,9 @@ app = Flask(__name__)
 
 login_manager = LoginManager(app)
 
+
 class User:
+    pass
 
 
 @app.route('/')
