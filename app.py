@@ -6,9 +6,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.secret_key = '213 something'
-app.config['SQLALCHEMY_DATABASE_URL'] = 'postgres://postgres:123@localhost/tea'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+db = SQLAlchemy()
+db.init_app(app)
 login_manager = LoginManager(app)
 
 
@@ -42,7 +42,7 @@ def login():
             return redirect(next_page)
         else:
             flash('Неверные логин/пароль')
-    else:
+    elif log or pas:
         flash('Введите логин/пароль')
     return render_template('login.html')
 
@@ -57,6 +57,8 @@ def register():
             flash('Заполните все поля')
         elif pas != pas2:
             flash('Пароли не равны')
+        elif User.query.filter_by(login=log).first():
+            flash('Недопустимый логин')
         else:
             h_pas = generate_password_hash(pas)
             n_user = User(login=log, password=h_pas)
@@ -74,9 +76,9 @@ def logout():
 
 
 @app.route('/menu')
-@login_required
+# @login_required
 def menu():
-    return 'qweqwe'
+    return render_template('menu.html')
 
 
 @app.after_request

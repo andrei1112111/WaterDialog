@@ -1,0 +1,40 @@
+body {
+    font: normal 14px/100% "Andale Mono", AndaleMono, monospace;
+    color: white;
+    padding: 50px;
+    width: 300px;
+    margin: 0 auto;
+    background-color: #374954;
+}
+
+button {
+    background-color: #6BBE92;
+    width: 302px;
+    border: 0;
+    padding: 10px 0;
+    margin: 5px 0;
+    text-align: center;
+    color: #fff;
+    font-weight: bold;
+}
+
+input {
+    background-color: #4F6877;
+    display: block;
+    padding: 8px 20px 5px 10px;
+    min-height: 25px;
+    line-height: 24px;
+    overflow: hidden;
+    border: 0;
+    width: 272px;
+    color: white;
+}
+
+a {
+    color: white;
+    font-weight: bold;
+}
+
+h1 {
+    text-align: center;
+}

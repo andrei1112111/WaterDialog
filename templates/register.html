@@ -2,38 +2,42 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>WaterDialog</title>
+    <link rel="icon" href="static/fav.ico" type="image">
+    <link rel="stylesheet" href="static/css/auth.css">
 </head>
 <body>
 <h1>Регистрация</h1>
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
-
 <form method="post">
     <table>
         <tr>
-            <td>Login</td>
-            <td><input type="text" name="login"></td>
+            <td><input type="text" name="login" placeholder="Логин"></td>
         </tr>
         <tr>
-            <td>Password</td>
-            <td><input type="password" name="password"></td>
+            <td><input type="password" name="password" placeholder="Пароль"></td>
         </tr>
         <tr>
-            <td>Password retype</td>
-            <td><input type="password" name="password2"></td>
+            <td><input type="password" name="password2" placeholder="Пароль"></td>
         </tr>
         <tr>
-            <td><a href="{{ url_for('login') }}">Login</a></td>
-            <td><input type="submit" value="Register"></td>
+            <td>{% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class=flashes>
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}</td>
+        </tr>
+        <tr>
+            <td>
+                <button type="submit" value="Войти">Войти</button>
+            </td>
+        </tr>
+        <tr>
+            <td><a href="{{ url_for('login') }}">Войти</a></td>
         </tr>
     </table>
 </form>
