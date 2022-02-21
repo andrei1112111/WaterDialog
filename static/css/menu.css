@@ -1,98 +1,207 @@
 body {
-  font: normal 14px/100% "Andale Mono", AndaleMono, monospace;
-  color: #fff;
-  padding: 50px;
-  width: 300px;
-  margin: 0 auto;
-  background-color: #374954;
+    font: normal 14px/100% "Andale Mono", AndaleMono, monospace;
+    color: #fff;
+    padding: 50px;
+    width: 300px;
+    margin: 0 auto;
+    background-color: #374954;
 }
 
 .dropdown {
-  position: absolute;
-  top:50%;
-  transform: translateY(-50%);
+    position: fixed;
+    top: 20%;
+    transform: translateY(-50%);
 }
 
 a {
-  color: #fff;
+    color: #fff;
+    text-align: center;
 }
 
 .dropdown dd,
 .dropdown dt {
-  margin: 0px;
-  padding: 0px;
+    margin: 0px;
+    padding: 0px;
 }
 
 .dropdown ul {
-  margin: -1px 0 0 0;
+    margin: -1px 0 0 0;
 }
 
 .dropdown dd {
-  position: relative;
+    position: relative;
 }
 
 .dropdown a,
 .dropdown a:visited {
-  color: #fff;
-  text-decoration: none;
-  outline: none;
-  font-size: 12px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
 }
 
 .dropdown dt a {
-  background-color: #4F6877;
-  display: block;
-  padding: 8px 20px 5px 10px;
-  min-height: 25px;
-  line-height: 24px;
-  overflow: hidden;
-  border: 0;
-  width: 272px;
+    background-color: #4F6877;
+    display: block;
+    padding: 8px 20px 5px 10px;
+    min-height: 25px;
+    line-height: 24px;
+    overflow: hidden;
+    border: 0;
+    width: 272px;
 }
 
 .dropdown dt a span,
 .multiSel span {
-  cursor: pointer;
-  display: inline-block;
-  padding: 0 3px 2px 0;
+    cursor: pointer;
+    display: inline-block;
+    padding: 0 3px 2px 0;
 }
 
 .dropdown dd ul {
-  background-color: #4F6877;
-  border: 0;
-  color: #fff;
-  display: none;
-  left: 0px;
-  padding: 2px 15px 2px 5px;
-  position: absolute;
-  top: 2px;
-  width: 282px;
-  list-style: none;
-  height: 97px;
-  overflow: auto;
+    background-color: #4F6877;
+    border: 0;
+    color: #fff;
+    display: none;
+    left: 0px;
+    padding: 2px 15px 2px 5px;
+    position: absolute;
+    top: 2px;
+    width: 282px;
+    list-style: none;
+    height: 108px;
+    overflow: auto;
 }
 
 .dropdown span.value {
-  display: none;
+    display: none;
 }
 
 .dropdown dd ul li a {
-  padding: 5px;
-  display: block;
+    padding: 5px;
+    display: block;
 }
 
 .dropdown dd ul li a:hover {
-  background-color: #fff;
+    background-color: #fff;
 }
 
 input {
-  display: inline-block;
-  position: relative;
-  width: 120px;
-  height: 32px;
-  line-height: 32px;
-  border-radius: 2px;
-  font-size: 0.9em;
-  color: #fff;
-  background-color: #6BBE92;
+    position: relative;
+    width: 120px;
+    height: 32px;
+    line-height: 32px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    margin-bottom: 2px;
+    margin-top: 2px;
+    color: #fff;
+    background-color: #6BBE92;
+    text-align: center;
+    border: 1px solid #4F6877;
 }
+
+.new_api {
+    position: relative;
+    left: 90px;
+    top: -225px;
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #4F6877;
+    background: #6BBE92;
+    border-radius: 25px;
+    overflow: hidden;
+    position: relative;
+    transition: width 0.2s ease-in-out;
+}
+
+.add-btn:hover {
+    width: 120px;
+}
+
+.add-btn::before,
+.add-btn::after {
+    transition: width 0.2s ease-in-out, border-radius 0.2s ease-in-out;
+    content: "";
+    position: absolute;
+    height: 4px;
+    width: 10px;
+    top: calc(50% - 2px);
+    background: white;
+}
+
+.add-btn::after {
+    right: 14px;
+    overflow: hidden;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+
+.add-btn::before {
+    left: 14px;
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+
+.btn-txt {
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #fff;
+}
+
+.add-btn:hover::before,
+.add-btn:hover::after {
+    width: 4px;
+    border-radius: 2px;
+}
+
+.add-btn:hover .btn-txt {
+    opacity: 1;
+}
+
+.logout {
+    position: relative;
+    top: -110px;
+}
+
+
+input[type=radio] {
+    position: absolute;
+    visibility: hidden;
+    display: none;
+}
+
+label {
+    color: white;
+    display: inline-block;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 5px 20px;
+}
+
+input[type=radio]:checked + label {
+    color: white;
+    background: #6BBE92;
+}
+
+.radio-group {
+    position: relative;
+    border: 1px solid #4F6877;
+    display: inline-block;
+    margin: 0px;
+    border-radius: 20px;
+    overflow: hidden;
+    left: 6px;
+    top: -230px;
+}
+
+.ost {
+    position: relative;
+    left: -5px;
+    top: 330px;
+}
+
+
+@import url('https://fonts.googleapis.com/css?family=Roboto');

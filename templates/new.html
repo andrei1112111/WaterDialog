@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>WaterDialog</title>
+    <link rel="icon" href="/static/fav.ico" type="image">
+    <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body>
+<h1>Создание api<h5>({{ data['type'] }})</h5></h1>
+<form method="post" enctype=multipart/form-data>
+    <table>
+        <tr>
+            <td><input type="text" name="login" placeholder="Логин"></td>
+        </tr>
+
+        <tr>
+            <td><input type="file" name="file" accept=".json"></td>
+        </tr>
+        <tr>
+            <td>
+                <button type="submit" value="Создать">Создать</button>
+            </td>
+        </tr>
+        <tr>
+            <td>{% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class=flashes>
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}</td>
+        </tr>
+    </table>
+</form>
+<div>
+<a>
+    Структура json-файла:
+</a>
+<img class="j" src="/static/img/{{ data['files'][0] }}" alt="Json"/>
+<a>
+    Пример запроса:
+</a>
+<img class="get" src="/static/img/{{ data['files'][1] }}" alt="Json"/>
+<a>
+    Пример ответа:
+</a>
+<img class="res" src="/static/img/{{ data['files'][2] }}" alt="Json"/>
+</div>
+<div class="close-container" onclick="window.location.href = 'http://127.0.0.1:5000/menu'">
+  <div class="leftright"></div>
+  <div class="rightleft"></div>
+  <label class="close">в меню</label>
+</div>
+</body>
+</html>
