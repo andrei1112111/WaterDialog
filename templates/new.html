@@ -11,7 +11,7 @@
 <form method="post" enctype=multipart/form-data>
     <table>
         <tr>
-            <td><input type="text" name="login" placeholder="Логин"></td>
+            <td><input type="text" name="login" placeholder="Название"></td>
         </tr>
 
         <tr>
@@ -34,25 +34,30 @@
             {% endwith %}</td>
         </tr>
     </table>
+    {% if data['type'] == "parser" %}
+
+    {% endif %}
 </form>
+<!-- partial -->
+<script src="/static/javascript/new.js"></script>
 <div>
-<a>
-    Структура json-файла:
-</a>
-<img class="j" src="/static/img/{{ data['files'][0] }}" alt="Json"/>
-<a>
-    Пример запроса:
-</a>
-<img class="get" src="/static/img/{{ data['files'][1] }}" alt="Json"/>
-<a>
-    Пример ответа:
-</a>
-<img class="res" src="/static/img/{{ data['files'][2] }}" alt="Json"/>
+    <a>
+        Структура json-файла:
+    </a>
+    <img class="j" src="/static/img/{{ data['files'][0] }}" alt="Json"/>
+    <a>
+        Пример запроса:
+    </a>
+    <img class="get" src="/static/img/{{ data['files'][1] }}" alt="Json"/>
+    <a>
+        Пример ответа:
+    </a>
+    <img class="res" src="/static/img/{{ data['files'][2] }}" alt="Json"/>
 </div>
 <div class="close-container" onclick="window.location.href = 'http://127.0.0.1:5000/menu'">
-  <div class="leftright"></div>
-  <div class="rightleft"></div>
-  <label class="close">в меню</label>
+    <div class="leftright"></div>
+    <div class="rightleft"></div>
+    <label class="close">в меню</label>
 </div>
 </body>
 </html>

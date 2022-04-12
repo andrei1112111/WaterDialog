@@ -28,8 +28,8 @@
                 {% if  table|length > 0 %}
                     {% for i in table %}
                         <li>
-                            <input name="ch" type="button" value="{{ i[0] }}"
-                                   onclick='window.location.href="http://127.0.0.1:5000/api/config/{{ i|join('@') }}"'> {{ i[1] }}
+                            <input name="ch" type="button" value="{{ i }}"
+                                   onclick='window.location.href="http://127.0.0.1:5000/api/config/{{ i }}"'>
                         </li>
                     {% endfor %}
                 {% endif %}

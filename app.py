@@ -22,7 +22,18 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     login = db.Column(db.String(16), nullable=False, unique=True)
     password = db.Column(db.String(16), nullable=False)
-    datas = db.Column(db.String(255), nullable=True)
+    classifiers = db.Column(db.String(511), nullable=False)
+
+
+class Classifier(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(16), nullable=False)
+    data_file = db.Column(db.String(255), nullable=False, unique=True)
+    admin_users = db.Column(db.PickleType, nullable=False)
+    api_users = db.Column(db.PickleType, nullable=True)
+    for_all = db.Column(db.Boolean, default=True)
+    views = db.Column(db.Integer, default=0)
+    type = db.Column(db.String(16), nullable=False)
 
 
 @login_manager.user_loader
@@ -72,7 +83,7 @@ def register():
             flash('Недопустимый логин')
         else:
             h_pas = generate_password_hash(pas)
-            n_user = User(login=log, password=h_pas)
+            n_user = User(login=log, password=h_pas, classifiers='')
             db.session.add(n_user)
             try:
                 db.session.commit()
@@ -94,17 +105,27 @@ def logout():
 def menu():
     if request.method == 'POST':
         return redirect(f"http://127.0.0.1:5000/new/{request.form['selector']}")
-    data = generate.generate(current_user.datas)
+    a = db.session.query(User).filter(User.login == current_user.login)[0]
+    if current_user.classifiers:
+        print(a.classifiers)
+        for i in current_user.classifiers:
+            print(i)
+        data = [Classifier.query.filter_by(id=i).first().name for i in current_user.classifiers.split('@')]
+        print(data)
+    else:
+        data = []
     return render_template('menu.html', table=data)
 
 
 @app.route('/api/config/<name>')
 @login_required
 def config(name):
-    if str(name.split('@')[-1]) != str(current_user.login):
+    print(name)
+    data = db.session.query(Classifier).filter(Classifier.name == name).scalar()
+    print(data)
+    if str(current_user.login) not in data.admin_users:
         return 'У вас недостаточно прав!'
-    data = db.session.query(User).filter(User.login == '1').scalar()
-    return render_template('api_config.html', name=name)
+    return render_template('api_config.html', data_f=data)
 
 
 @app.route('/new/<typi>', methods=['GET', 'POST'])
@@ -120,8 +141,11 @@ def new_classify(typi):
         pattern_data = {
             'type': 'parser',
             'files': ['carbon3.png', 'carbon4.png', 'carbon5.png'],
-            'img': 'left: 80px;'
+            'img': 'left: 80px;',
+            'rlist': []
         }
+        for i in os.listdir():
+            pattern_data['rlist'].append(i.replace('.json', ''))
     else:
         return redirect('http://127.0.0.1:5000/menu')
     if request.method == 'POST':
@@ -129,31 +153,54 @@ def new_classify(typi):
         fi = request.files['file']
         if f['login'] and fi:
             if generate.correct_login(f['login']):
-                if generate.correct_file(fi.filename):
-                    if not current_user.datas or f'{f["login"]}@{pattern_data["type"]}@{current_user.login}|' not in current_user.datas:
+                if generate.correct_file(fi.filename, rule=''):
+                    if True:
                         path = f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}/data.json'
                         try:
                             os.mkdir(f'user_data/{current_user.login}')
+                        except FileExistsError as e:
+                            pass
+                        try:
                             os.mkdir(f'user_data/{current_user.login}/{pattern_data["type"]}')
+                        except FileExistsError as e:
+                            pass
+                        try:
                             os.mkdir(f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}')
-                            print('ФАЙЛЫ ДАТЫ СОЗДАННЫ')
                         except FileExistsError as e:
-                            print("ОШИБКА ПАПОК", e)
-                        db.session.query(User)
-                        a = db.session.query(User).filter(User.login == current_user.login)[0]
-                        a.datas = str(a.datas) + f'{f["login"]}@{pattern_data["type"]}@{current_user.login}|'
+                            pass
+                        new_classifier = Classifier(
+                            name=f['login'],
+                            data_file=f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}',
+                            admin_users=[current_user.login],
+                            type=typi)
                         try:
-                            fi.save(path)
-                        except FileExistsError as e:
-                            print("ОШИБКА СОХРАНЕНИЯ", e)
+                            db.session.add(new_classifier)
+                        except DatabaseError:
+                            print("ОШИБКА КОМИТА")
+                            db.session.rollback()
+                        a = User.query.filter_by(login=current_user.login).first()
+                        if a.classifiers != '':
+                            a.classifiers = f'{a.classifiers}@{new_classifier.id}'
+                        else:
+                            a.classifiers = str(new_classifier.id)
+                        print(new_classifier.id)
+                        print(a.classifiers, '1--------')
                         try:
+                            db.session.merge(a)
+                            db.session.flush()
                             db.session.commit()
                         except DatabaseError:
                             print("ОШИБКА КОМИТА")
                             db.session.rollback()
-                        return redirect(f'http://127.0.0.1:5000/api/config/{f["login"]}@{pattern_data["type"]}@{current_user.login}')
+                        try:
+                            fi.save(path)
+                        except FileExistsError as e:
+                            print("ОШИБКА СОХРАНЕНИЯ", e)
+                        a = User.query.filter_by(login=current_user.login).first()
+                        print(a.classifiers, '2--------')
+                        return redirect(f'http://127.0.0.1:5000/api/config/{new_classifier.name}')
                     else:
-                        return redirect(f'http://127.0.0.1:5000/api/config/{f["login"]}@{pattern_data["type"]}@{current_user.login}')
+                        return redirect(f'http://127.0.0.1:5000/')
                 else:
                     flash("Неверное заполнение файла данных")
             else:

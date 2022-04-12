@@ -19,9 +19,14 @@ def correct_login(login):
         return True
 
 
-def correct_file(file, rule='.json'):
-    if rule in file and '.' not in file.replace(rule, ''):
-        return True
+def correct_data(rule):
+    return True
+
+
+def correct_file(file, rule):
+    if '.json' in file and '.' not in file.replace('.json', ''):
+        if correct_data(rule):
+            return True
 
 
 def exists(path):
