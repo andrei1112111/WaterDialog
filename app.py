@@ -2,7 +2,6 @@ import os.path
 from flask import Flask, redirect, url_for, request, render_template, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api, reqparse
-from flask_json import FlaskJSON, as_json
 from sqlalchemy.exc import DatabaseError
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -11,7 +10,6 @@ from scripts import generate, train_classifier, parser
 
 app = Flask(__name__)
 api = Api(app)
-FlaskJSON(app)
 app.secret_key = '213 something'
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.abspath('static/tea.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -43,15 +41,15 @@ def create_file(args, file):
     path = f'user_data/{args.login}/{args.type}/{args.name}/data.json'
     try:
         os.mkdir(f'user_data/{args.login}')
-    except FileExistsError as e:
+    except FileExistsError:
         pass
     try:
         os.mkdir(f'user_data/{args.login}/{args.type}')
-    except FileExistsError as e:
+    except FileExistsError:
         pass
     try:
         os.mkdir(f'user_data/{args.login}/{args.type}/{args.name}')
-    except FileExistsError as e:
+    except FileExistsError:
         pass
     try:
         file.save(path)
@@ -62,6 +60,7 @@ def create_file(args, file):
 
 
 class WaterDialog(Resource):
+    # noinspection PyMethodMayBeStatic
     def get(self):  # Запрос на выполнение прогрессинга текста
         result = {}
         pars = reqparse.RequestParser()
@@ -104,6 +103,7 @@ class WaterDialog(Resource):
 
 
 class WaterDialogSettings(Resource):
+    # noinspection PyMethodMayBeStatic
     def get(self):  # Запрос на получение данных api
         result = {}
         pars = reqparse.RequestParser()
@@ -137,6 +137,7 @@ class WaterDialogSettings(Resource):
             result['error'] = 'Не верный ключ api'
         return result
 
+    # noinspection PyMethodMayBeStatic
     def post(self):  # Запрос на создание нового api
         result = {}
         pars = reqparse.RequestParser()
@@ -149,22 +150,23 @@ class WaterDialogSettings(Resource):
         pars.add_argument('for_all', type=str, required=False)
         pars.add_argument('data_file', type=FileStorage, location='files', required=True)
         args = pars.parse_args()
-        adms = [args.login]
+        admins = [args.login]
         if args.admin_users:
-            adms.append(args.admin_users)
+            admins.append(args.admin_users)
         if args.login and args.password:
             user = User.query.filter_by(login=args.login).first()
             if user and check_password_hash(user.password, args.password):
                 result['auth'] = True
                 if generate.correct_login(args.name):
                     file = args['data_file']
-                    if generate.correct_file(file.filename, rule=''):
+                    s = 'cl' if args.type == 'classify' else 'pa'
+                    if generate.correct_file(file.filename, rule=s):
                         e, path = create_file(args, file)
                         if e:
                             result['response'] = e
                         new_classifier = Classifier(
                             name=args.name,
-                            admin_users=adms,
+                            admin_users=admins,
                             api_users=args.api_users,
                             type=args.type,
                             for_all=False if args.for_all == 'False' else True,
@@ -199,6 +201,7 @@ class WaterDialogSettings(Resource):
 
         return result
 
+    # noinspection PyMethodMayBeStatic
     def put(self):  # Запрос на изменение api
         result = {}
         pars = reqparse.RequestParser()
@@ -230,7 +233,8 @@ class WaterDialogSettings(Resource):
                     if args.for_all:
                         data.for_all = args.for_all
                         result['response'].append('for_all')
-                    if args.data_file and generate.correct_file(args.data_file.filename, rule=''):
+                    s = 'cl' if data.type == 'classify' else 'pa'
+                    if args.data_file and generate.correct_file(args.data_file.filename, rule=s):
                         e, path = create_file(args, args.data_file)
                         if e:
                             result['response'].append(e)
@@ -252,6 +256,7 @@ class WaterDialogSettings(Resource):
             result['error'] = 'Неверная комбинация логина/пароля'
         return result
 
+    # noinspection PyMethodMayBeStatic
     def delete(self):  # Запрос на удаление api
         result = {}
         pars = reqparse.RequestParser()
@@ -333,7 +338,7 @@ def login():
             flash('Неверные логин/пароль')
     elif log or pas:
         flash('Введите логин/пароль')
-    return render_template('login.html')
+    return render_template('login.html', t='Авторизация')
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -352,6 +357,7 @@ def register():
             flash('Недопустимый логин')
         else:
             h_pas = generate_password_hash(pas)
+            # noinspection PyArgumentList
             n_user = User(login=log, password=h_pas, classifiers='')
             db.session.add(n_user)
             try:
@@ -359,7 +365,7 @@ def register():
             except DatabaseError:
                 db.session.rollback()
             return redirect(url_for('login'))
-    return render_template('register.html')
+    return render_template('register.html', t='Регистрация')
 
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -403,21 +409,23 @@ def docs():
     return '1'
 
 
-@app.route('/new/<typi>', methods=['GET', 'POST'])
+@app.route('/new/<typ>', methods=['GET', 'POST'])
 @login_required
-def new_classify(typi):
-    if typi == 'classify':
+def new_classify(typ):
+    if typ == 'classify':
         pattern_data = {
             'type': 'classify',
             'files': ['carbon.png', 'carbon2.png', 'carbon6.png'],
-            'img': 'left: -160px;'
+            'img': 'left: -160px;',
+            'rule': 'cl'
         }
-    elif typi == 'parser':
+    elif typ == 'parser':
         pattern_data = {
             'type': 'parser',
             'files': ['carbon3.png', 'carbon4.png', 'carbon5.png'],
             'img': 'left: 80px;',
-            'rlist': []
+            'rlist': [],
+            'rule': 'pa'
         }
         for i in os.listdir():
             pattern_data['rlist'].append(i.replace('.json', ''))
@@ -428,53 +436,49 @@ def new_classify(typi):
         fi = request.files['file']
         if f['login'] and fi:
             if generate.correct_login(f['login']):
-                if generate.correct_file(fi.filename, rule=''):
-                    if True:
-                        args = generate.Agrs_file(current_user.login, f['login'], typi)
-                        e, path = create_file(args, fi)
-                        if e:
-                            flash(e)
-                        new_classifier = Classifier(
-                            name=f['login'],
-                            data_file=f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}',
-                            admin_users=[current_user.login],
-                            type=typi)
-                        try:
-                            db.session.add(new_classifier)
-                        except DatabaseError:
-                            print("ОШИБКА КОМИТА")
-                            db.session.rollback()
-                        new_classifier = db.session.query(Classifier).filter(Classifier.name == f['login']).first()
-                        usrd = db.session.query(User).filter(User.login == current_user.login).first()
-                        if usrd.classifiers != '':
-                            usrd.classifiers = f'{usrd.classifiers}@{new_classifier.id}'
-                        else:
-                            usrd.classifiers = str(new_classifier.id)
-                        print(new_classifier.id)
-                        print(usrd.classifiers, '1--------')
-                        try:
-                            db.session.merge(usrd)
-                            db.session.flush()
-                            db.session.commit()
-                        except DatabaseError:
-                            print("ОШИБКА КОМИТА")
-                            db.session.rollback()
-                        try:
-                            fi.save(path)
-                        except FileExistsError as e:
-                            print("ОШИБКА СОХРАНЕНИЯ", e)
-                        a = User.query.filter_by(login=current_user.login).first()
-                        print(a.classifiers, '2--------')
-                        return redirect(f'http://127.0.0.1:5000/api/config/{new_classifier.name}')
+                if generate.correct_file(fi.filename, rule=pattern_data['rule']):
+                    args = generate.ArgsFile(current_user.login, f['login'], typ)
+                    e, path = create_file(args, fi)
+                    if e:
+                        flash(e)
+                    new_classifier = Classifier(
+                        name=f['login'],
+                        data_file=f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}',
+                        admin_users=[current_user.login],
+                        type=typ)
+                    try:
+                        db.session.add(new_classifier)
+                    except DatabaseError:
+                        print("ОШИБКА КОМИТА")
+                        db.session.rollback()
+                    new_classifier = db.session.query(Classifier).filter(Classifier.name == f['login']).first()
+                    usr = db.session.query(User).filter(User.login == current_user.login).first()
+                    if usr.classifiers != '':
+                        usr.classifiers = f'{usr.classifiers}@{new_classifier.id}'
                     else:
-                        return redirect(f'http://127.0.0.1:5000/')
+                        usr.classifiers = str(new_classifier.id)
+                    print(new_classifier.id)
+                    print(usr.classifiers, '1--------')
+                    try:
+                        db.session.merge(usr)
+                        db.session.flush()
+                        db.session.commit()
+                    except DatabaseError:
+                        print("ОШИБКА КОМИТА")
+                        db.session.rollback()
+                    try:
+                        fi.save(path)
+                    except FileExistsError as e:
+                        print("ОШИБКА СОХРАНЕНИЯ", e)
+                    a = User.query.filter_by(login=current_user.login).first()
+                    print(a.classifiers, '2--------')
+                    return redirect(f'http://127.0.0.1:5000/api/config/{new_classifier.name}')
                 else:
                     flash("Неверное заполнение файла данных")
             else:
                 flash("Неверный формат логина(не больше 16 Английских букв)")
         else:
             flash("Введите имя api и загрузите .json")
-
     return render_template('new.html', data=pattern_data)
 
 

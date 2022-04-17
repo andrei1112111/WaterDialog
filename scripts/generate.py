@@ -8,8 +8,6 @@ def generate(data=None):
         for i in data:
             if '@' in i:
                 sp.append(i.split("@"))
-                # sp += f"""<li>\n<input name="ch" type="button" value="{i.split("@")[0]}"
-            # onclick="window.location.href = 'http://127.0.0.1:5000/api/config/{i}';">  {i.split("@")[1]}\n</li>\n"""
     return sp
 
 
@@ -19,13 +17,21 @@ def correct_login(login):
         return True
 
 
-def correct_data(rule):
-    return True
+def correct_data(data, rule):
+    data = data.strip()
+    data = data.replace('\n', '').replace('\r', '').replace('\t', '')
+    if rule == 'cl':
+        if data[0] == '{' and data[-1] == ']}':
+            return True
+    elif rule == 'pa':
+        if data[0] == '[{' and data[-1] == '}]':
+            return True
+    return False
 
 
 def correct_file(file, rule):
     if '.json' in file and '.' not in file.replace('.json', ''):
-        if correct_data(rule):
+        if correct_data(file.read(), rule):
             return True
 
 
@@ -37,6 +43,6 @@ def exists(path):
     return True
 
 
-class Agrs_file:
+class ArgsFile:
     def __init__(self, login, name, typ):
         self.login, self.name, self.type = login, name, typ
