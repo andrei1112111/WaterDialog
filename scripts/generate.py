@@ -35,3 +35,8 @@ def exists(path):
     except OSError:
         return False
     return True
+
+
+class Agrs_file:
+    def __init__(self, login, name, typ):
+        self.login, self.name, self.type = login, name, typ

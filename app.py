@@ -1,14 +1,16 @@
 import os.path
 from flask import Flask, redirect, url_for, request, render_template, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_restful import Resource, Api, reqparse
 from flask_json import FlaskJSON, as_json
 from sqlalchemy.exc import DatabaseError
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
-
+from werkzeug.datastructures import FileStorage
 from scripts import generate, train_classifier, parser
 
 app = Flask(__name__)
+api = Api(app)
 FlaskJSON(app)
 app.secret_key = '213 something'
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.abspath('static/tea.db')}"
@@ -16,6 +18,273 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
 login_manager = LoginManager(app)
+
+
+def go_api(data, text):
+    if generate.exists(data.data_file):
+        if data.type == 'classify':
+            response = train_classifier.ai_classify(text, data.data_file)
+        else:
+            response = parser.parse_text_rules(text, data.data_file)
+        data.views += 1
+        try:
+            db.session.merge(data)
+            db.session.flush()
+            db.session.commit()
+        except DatabaseError:
+            print("ОШИБКА КОМИТА")
+            db.session.rollback()
+        return False, response
+    else:
+        return True, 'Файл данных поврежден'
+
+
+def create_file(args, file):
+    path = f'user_data/{args.login}/{args.type}/{args.name}/data.json'
+    try:
+        os.mkdir(f'user_data/{args.login}')
+    except FileExistsError as e:
+        pass
+    try:
+        os.mkdir(f'user_data/{args.login}/{args.type}')
+    except FileExistsError as e:
+        pass
+    try:
+        os.mkdir(f'user_data/{args.login}/{args.type}/{args.name}')
+    except FileExistsError as e:
+        pass
+    try:
+        file.save(path)
+    except FileExistsError as e:
+        print("ОШИБКА СОХРАНЕНИЯ", e)
+        return "ОШИБКА СОХРАНЕНИЯ", path
+    return None, path
+
+
+class WaterDialog(Resource):
+    def get(self):  # Запрос на выполнение прогрессинга текста
+        result = {}
+        pars = reqparse.RequestParser()
+        pars.add_argument('id', type=int, required=True)
+        pars.add_argument('text', type=str, required=True)
+        pars.add_argument('login', type=str, required=False)
+        pars.add_argument('password', type=str, required=False)
+        args = pars.parse_args()
+        data = db.session.query(Classifier).filter(Classifier.id == args.id).scalar()
+        if args.id and data:
+            if args.text:
+                if data.for_all:
+                    bad, res = go_api(data, args.text)
+                    if bad:
+                        result['error'] = "Файл данных поврежден или отсутствует"
+                    else:
+                        result['response'] = res
+                else:
+                    if args.login and args.password:
+                        user = User.query.filter_by(login=args.login).first()
+                        if user and check_password_hash(user.password, args.password):
+                            result['auth'] = True
+                            if user.login in data.admin_users or user.login in data.api_users or data.for_all is True:
+                                bad, res = go_api(data, args.text)
+                                if bad:
+                                    result['error'] = "Файл данных поврежден или отсутствует"
+                                else:
+                                    result['response'] = res
+                            else:
+                                result['error'] = 'В доступе отказано'
+                        else:
+                            result['error'] = 'Неверная комбинация логина/пароля'
+                    else:
+                        result['error'] = 'Неверная комбинация логина/пароля'
+            else:
+                result['error'] = 'Текст запроса не указан'
+        else:
+            result['error'] = 'Не верный ключ api'
+        return result
+
+
+class WaterDialogSettings(Resource):
+    def get(self):  # Запрос на получение данных api
+        result = {}
+        pars = reqparse.RequestParser()
+        pars.add_argument('id', type=int, required=True)
+        pars.add_argument('login', type=str, required=True)
+        pars.add_argument('password', type=str, required=True)
+        args = pars.parse_args()
+        data = db.session.query(Classifier).filter(Classifier.id == args.id).scalar()
+        if args.id and data:
+            if args.login and args.password:
+                user = User.query.filter_by(login=args.login).first()
+                if user and check_password_hash(user.password, args.password):
+                    result['auth'] = True
+                    if user.login in data.admin_users:
+                        result['response'] = {
+                            'key': data.id,
+                            'name': data.name,
+                            'admin_users': data.admin_users,
+                            'api_users': data.api_users,
+                            'for_all': data.for_all,
+                            'views': data.views,
+                            'type': data.type
+                        }
+                    else:
+                        result['error'] = 'В доступе отказано'
+                else:
+                    result['error'] = 'Неверная комбинация логина/пароля'
+            else:
+                result['error'] = 'Неверная комбинация логина/пароля'
+        else:
+            result['error'] = 'Не верный ключ api'
+        return result
+
+    def post(self):  # Запрос на создание нового api
+        result = {}
+        pars = reqparse.RequestParser()
+        pars.add_argument('login', type=str, required=True)
+        pars.add_argument('password', type=str, required=True)
+        pars.add_argument('name', type=str, required=True)
+        pars.add_argument('admin_users', type=str, required=False, action='append')
+        pars.add_argument('api_users', type=list, required=False, action='append')
+        pars.add_argument('type', type=str, required=True)
+        pars.add_argument('for_all', type=str, required=False)
+        pars.add_argument('data_file', type=FileStorage, location='files', required=True)
+        args = pars.parse_args()
+        adms = [args.login]
+        if args.admin_users:
+            adms.append(args.admin_users)
+        if args.login and args.password:
+            user = User.query.filter_by(login=args.login).first()
+            if user and check_password_hash(user.password, args.password):
+                result['auth'] = True
+                if generate.correct_login(args.name):
+                    file = args['data_file']
+                    if generate.correct_file(file.filename, rule=''):
+                        e, path = create_file(args, file)
+                        if e:
+                            result['response'] = e
+                        new_classifier = Classifier(
+                            name=args.name,
+                            admin_users=adms,
+                            api_users=args.api_users,
+                            type=args.type,
+                            for_all=False if args.for_all == 'False' else True,
+                            data_file=path)
+                        try:
+                            db.session.add(new_classifier)
+                            db.session.commit()
+                            result['response'] = 'Успешно'
+                        except DatabaseError:
+                            print("ОШИБКА КОМИТА")
+                            db.session.rollback()
+                            result['response'] = 'Ошибка создания'
+                        if user.classifiers != '':
+                            user.classifiers = f'{user.classifiers}@{new_classifier.id}'
+                        else:
+                            user.classifiers = str(new_classifier.id)
+                        try:
+                            db.session.merge(user)
+                            db.session.flush()
+                            db.session.commit()
+                        except DatabaseError:
+                            print("ОШИБКА КОМИТА")
+                            db.session.rollback()
+                    else:
+                        result['error'] = "Неверное заполнение файла данных"
+                else:
+                    result['error'] = "Неверный формат логина(не больше 16 Английских букв)"
+            else:
+                result['error'] = 'Неверная комбинация логина/пароля'
+        else:
+            result['error'] = 'Неверная комбинация логина/пароля'
+
+        return result
+
+    def put(self):  # Запрос на изменение api
+        result = {}
+        pars = reqparse.RequestParser()
+        pars.add_argument('login', type=str, required=True)
+        pars.add_argument('password', type=str, required=True)
+        pars.add_argument('id', type=int, required=True)
+        pars.add_argument('name', type=str, required=False)
+        pars.add_argument('admin_users', type=str, required=False, action='append')
+        pars.add_argument('api_users', type=str, required=False, action='append')
+        pars.add_argument('for_all', type=str, required=False)
+        pars.add_argument('data_file', type=FileStorage, required=False, location='files')
+        args = pars.parse_args()
+        if args.login and args.password:
+            user = User.query.filter_by(login=args.login).first()
+            if user and check_password_hash(user.password, args.password):
+                result['auth'] = True
+                data = db.session.query(Classifier).filter(Classifier.id == args.id).scalar()
+                if data and user.login in data.admin_users:
+                    result['response'] = []
+                    if args.name and generate.correct_login(args.name):
+                        data.name = args.name
+                        result['response'].append('name')
+                    if args.admin_users:
+                        data.admin_users.append(args.admin_users)
+                        result['response'].append('admin_users')
+                    if args.api_users:
+                        data.api_users.append(args.api_users)
+                        result['response'].append('api_users')
+                    if args.for_all:
+                        data.for_all = args.for_all
+                        result['response'].append('for_all')
+                    if args.data_file and generate.correct_file(args.data_file.filename, rule=''):
+                        e, path = create_file(args, args.data_file)
+                        if e:
+                            result['response'].append(e)
+                        else:
+                            result['response'].append('data_file')
+                    try:
+                        db.session.merge(data)
+                        db.session.flush()
+                        db.session.commit()
+                    except DatabaseError:
+                        print("ОШИБКА КОМИТА")
+                        result['response'].append('Ошибка бд')
+                        db.session.rollback()
+                else:
+                    result['error'] = 'Ключ не найден или у вас нет доступа'
+            else:
+                result['error'] = 'Неверная комбинация логина/пароля'
+        else:
+            result['error'] = 'Неверная комбинация логина/пароля'
+        return result
+
+    def delete(self):  # Запрос на удаление api
+        result = {}
+        pars = reqparse.RequestParser()
+        pars.add_argument('login', type=str, required=True)
+        pars.add_argument('password', type=str, required=True)
+        pars.add_argument('id', type=int, required=True)
+        args = pars.parse_args()
+        if args.login and args.password:
+            user = User.query.filter_by(login=args.login).first()
+            if user and check_password_hash(user.password, args.password):
+                result['auth'] = True
+                data = Classifier.query.filter(Classifier.id == args.id).first()
+                if data and user.login in data.admin_users:
+                    Classifier.query.filter(Classifier.id == args.id).delete()
+                    if user.classifiers[0] == str(args.id):
+                        user.classifiers = user.classifiers[2:]
+                    else:
+                        user.classifiers = user.classifiers.replace(f'@{args.id}', '')
+                    try:
+                        db.session.merge(user)
+                        db.session.flush()
+                        db.session.commit()
+                        result['response'] = 'Успешно'
+                    except DatabaseError:
+                        db.session.rollback()
+                        result['response'] = 'Ошибка удаления'
+                else:
+                    result['response'] = 'Ошибка доступа'
+        return result
+
+
+api.add_resource(WaterDialog, '/api')
+api.add_resource(WaterDialogSettings, '/api/settings')
 
 
 class User(db.Model, UserMixin):
@@ -28,11 +297,11 @@ class User(db.Model, UserMixin):
 class Classifier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(16), nullable=False)
-    data_file = db.Column(db.String(255), nullable=False, unique=True)
+    data_file = db.Column(db.String(255), nullable=False)
     admin_users = db.Column(db.PickleType, nullable=False)
     api_users = db.Column(db.PickleType, nullable=True)
-    for_all = db.Column(db.Boolean, default=True)
-    views = db.Column(db.Integer, default=0)
+    for_all = db.Column(db.Boolean, default=True, nullable=True)
+    views = db.Column(db.Integer, default=0, nullable=True)
     type = db.Column(db.String(16), nullable=False)
 
 
@@ -125,7 +394,13 @@ def config(name):
     print(data)
     if str(current_user.login) not in data.admin_users:
         return 'У вас недостаточно прав!'
+    data.api_users = [i[0] for i in data.api_users]
     return render_template('api_config.html', data_f=data)
+
+
+@app.route('/api/docs')
+def docs():
+    return '1'
 
 
 @app.route('/new/<typi>', methods=['GET', 'POST'])
@@ -155,19 +430,10 @@ def new_classify(typi):
             if generate.correct_login(f['login']):
                 if generate.correct_file(fi.filename, rule=''):
                     if True:
-                        path = f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}/data.json'
-                        try:
-                            os.mkdir(f'user_data/{current_user.login}')
-                        except FileExistsError as e:
-                            pass
-                        try:
-                            os.mkdir(f'user_data/{current_user.login}/{pattern_data["type"]}')
-                        except FileExistsError as e:
-                            pass
-                        try:
-                            os.mkdir(f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}')
-                        except FileExistsError as e:
-                            pass
+                        args = generate.Agrs_file(current_user.login, f['login'], typi)
+                        e, path = create_file(args, fi)
+                        if e:
+                            flash(e)
                         new_classifier = Classifier(
                             name=f['login'],
                             data_file=f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}',
@@ -178,15 +444,16 @@ def new_classify(typi):
                         except DatabaseError:
                             print("ОШИБКА КОМИТА")
                             db.session.rollback()
-                        a = User.query.filter_by(login=current_user.login).first()
-                        if a.classifiers != '':
-                            a.classifiers = f'{a.classifiers}@{new_classifier.id}'
+                        new_classifier = db.session.query(Classifier).filter(Classifier.name == f['login']).first()
+                        usrd = db.session.query(User).filter(User.login == current_user.login).first()
+                        if usrd.classifiers != '':
+                            usrd.classifiers = f'{usrd.classifiers}@{new_classifier.id}'
                         else:
-                            a.classifiers = str(new_classifier.id)
+                            usrd.classifiers = str(new_classifier.id)
                         print(new_classifier.id)
-                        print(a.classifiers, '1--------')
+                        print(usrd.classifiers, '1--------')
                         try:
-                            db.session.merge(a)
+                            db.session.merge(usrd)
                             db.session.flush()
                             db.session.commit()
                         except DatabaseError:
@@ -209,24 +476,6 @@ def new_classify(typi):
             flash("Введите имя api и загрузите .json")
 
     return render_template('new.html', data=pattern_data)
-
-
-@app.route('/api/<key>', methods=['GET'])
-@as_json
-def api(key):
-    response = None
-    name, t, lo = key.split('@')
-    path = f'user_data/{lo}/{t}/{name}'
-    if generate.exists(path):
-        data = request.args.get('data')
-        if t == 'classify':
-            response = train_classifier.ai_classify(data, path)
-        elif t == 'parser':
-            response = parser.parse_text_rules(data, path)
-    if type(response) == dict:
-        return response
-    else:
-        return dict(text=response)
 
 
 @app.route('/error')
