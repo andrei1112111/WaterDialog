@@ -378,6 +378,7 @@ def logout():
 @app.route('/menu', methods=['GET', 'POST'])
 @login_required
 def menu():
+    print(url_for('login'))
     if request.method == 'POST':
         return redirect(f"http://127.0.0.1:5000/new/{request.form['selector']}")
     a = db.session.query(User).filter(User.login == current_user.login)[0]
@@ -400,7 +401,8 @@ def config(name):
     print(data)
     if str(current_user.login) not in data.admin_users:
         return 'У вас недостаточно прав!'
-    data.api_users = [i[0] for i in data.api_users]
+    if data.api_users:
+        data.api_users = [i[0] for i in data.api_users]
     return render_template('api_config.html', data_f=data)
 
 

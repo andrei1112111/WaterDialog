@@ -29,7 +29,7 @@
                     {% for i in table %}
                         <li>
                             <input name="ch" type="button" value="{{ i }}"
-                                   onclick='window.location.href="http://127.0.0.1:5000/api/config/{{ i }}"'>
+                                   onclick='window.location.href="{{ url_for('config', name=i) }}"'>
                         </li>
                     {% endfor %}
                 {% endif %}
@@ -48,7 +48,7 @@
 
 
     <div class="logout" style="text-align: center; margin-top: 8px;">
-        <button class="icon-btn add-btn" onclick="window.location.href = 'http://127.0.0.1:5000/logout'">
+        <button class="icon-btn add-btn" onclick="window.location.href = '{{ url_for('logout') }}'">
             <div class="btn-txt">Logout</div>
         </button>
     </div>

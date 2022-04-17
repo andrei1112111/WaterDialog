@@ -52,7 +52,7 @@
     </a>
     <img class="res" src="/static/img/{{ data['files'][2] }}" alt="Json"/>
 </div>
-<div class="close-container" onclick="window.location.href = 'http://127.0.0.1:5000/menu'">
+<div class="close-container" onclick="window.location.href = '{{ url_for('menu') }}'">
     <div class="leftright"></div>
     <div class="rightleft"></div>
     <label class="close">в меню</label>
