@@ -384,7 +384,7 @@ def logout():
 def menu():
     print(url_for('login'))
     if request.method == 'POST':
-        return redirect(f"http://water-dialog.herokuapp.com/new/{request.form['selector']}")
+        return redirect(url_for('new_classify', s=request.form['selector']))
     a = db.session.query(User).filter(User.login == current_user.login)[0]
     if current_user.classifiers:
         print(a.classifiers)
@@ -436,7 +436,7 @@ def new_classify(typ):
         for i in os.listdir():
             pattern_data['rlist'].append(i.replace('.json', ''))
     else:
-        return redirect('http://127.0.0.1:5000/menu')
+        return redirect(url_for('menu'))
     if request.method == 'POST':
         f = request.form.to_dict()
         fi = request.files['file']
@@ -478,7 +478,7 @@ def new_classify(typ):
                         print("ОШИБКА СОХРАНЕНИЯ", e)
                     a = User.query.filter_by(login=current_user.login).first()
                     print(a.classifiers, '2--------')
-                    return redirect(f'http://127.0.0.1:5000/api/config/{new_classifier.name}')
+                    return redirect(f'{url_for("config", name=new_classifier.name)}')
                 else:
                     flash("Неверное заполнение файла данных")
             else:
