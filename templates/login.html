@@ -1,6 +1,17 @@
-{% extends "auth.html" %}
-{% block content %}
-    <tr>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>WaterDialog</title>
+    <link rel="icon" href="static/fav.ico" type="image">
+    <link rel="stylesheet" href="static/css/auth.css">
+</head>
+<body>
+<h1>{{ t }}</h1>
+
+<form method="post">
+    <table>
+       <tr>
         <td><input type="text" name="login" placeholder="Логин"></td>
     </tr>
     <tr>
@@ -25,4 +36,7 @@
     <tr>
         <td><a href="{{ url_for('register') }}">Регистрация</a></td>
     </tr>
-{% endblock %}
+    </table>
+</form>
+</body>
+</html>
