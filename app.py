@@ -380,7 +380,7 @@ def logout():
 def menu():
     print(url_for('login'))
     if request.method == 'POST':
-        return redirect(f"http://127.0.0.1:5000/new/{request.form['selector']}")
+        return redirect(f"{url_for('new')}/{request.form['selector']}")
     a = db.session.query(User).filter(User.login == current_user.login)[0]
     if current_user.classifiers:
         print(a.classifiers)
