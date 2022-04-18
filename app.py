@@ -56,7 +56,7 @@ def create_file(args, file):
     except FileExistsError:
         pass
     try:
-        with open(path, 'w') as f:
+        with open(path, 'wb') as f:
             f.write(file)
     except FileExistsError as e:
         print("ОШИБКА СОХРАНЕНИЯ", e)
