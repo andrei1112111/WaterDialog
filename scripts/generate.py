@@ -31,7 +31,8 @@ def correct_data(data, rule):
 
 def correct_file(file, rule):
     if '.json' in file and '.' not in file.replace('.json', ''):
-        if correct_data(file.read(), rule):
+        f = file if str(type(file)) == 'str' else file.read()
+        if correct_data(f, rule):
             return True
 
 
