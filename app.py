@@ -475,7 +475,7 @@ def new_classify(typ):
                         db.session.rollback()
                     try:
                         fi.save(path)
-                        print(open(path + '/data.json').read())
+                        print(open(path).read())
                     except FileExistsError as e:
                         print("ОШИБКА СОХРАНЕНИЯ", e)
                     a = User.query.filter_by(login=current_user.login).first()
