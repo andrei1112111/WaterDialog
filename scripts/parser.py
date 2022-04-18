@@ -25,8 +25,7 @@ def to_rule(data):
 
 
 def parse_text_rules(text, path):
-    data = load(path)
-    rules = to_rule(data)
+    rules = to_rule(path)
     result = {}
     for r in rules:
         parser = Parser(r[0])

@@ -38,11 +38,12 @@ def train(data):
 
 def load_json(path):
     data = {'text': [], 'tag': []}
-    with open(f'{path}/data.json', 'r', encoding='UTF-8') as file:
-        print(path)
-        print(file.read())
-        print(open(f'{path}/data.json').read())
-        js = json.load(file)
+    # with open(f'{path}/data.json', 'r', encoding='UTF-8') as file:
+    #     print(path)
+    #     print(file.read())
+    #     print(open(f'{path}/data.json', 'rb').read())
+    #     js = json.load(file)
+    js = path
     for i in js.keys():
         for j in js[i]:
             j = text_cleaner(j)

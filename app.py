@@ -1,3 +1,4 @@
+import json
 import os.path
 from flask import Flask, redirect, url_for, request, render_template, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -19,49 +20,21 @@ login_manager = LoginManager(app)
 
 
 def go_api(data, text):
-    if generate.exists(data.data_file):
-        if data.type == 'classify':
-            response = train_classifier.ai_classify(text, data.data_file)
-        else:
-            response = parser.parse_text_rules(text, data.data_file)
-        data.views += 1
-        try:
-            db.session.merge(data)
-            db.session.flush()
-            db.session.commit()
-        except DatabaseError:
-            print("ОШИБКА КОМИТА")
-            db.session.rollback()
-        return False, response
+    if data.type == 'classify':
+        print(data)
+        print(data.data_file)
+        response = train_classifier.ai_classify(text, data.data_file)
     else:
-        return True, 'Файл данных поврежден'
-
-
-def create_file(args, file):
-    path = f'user_data/{args.login}/{args.type}/{args.name}/data.json'
+        response = parser.parse_text_rules(text, data.data_file)
+    data.views += 1
     try:
-        os.mkdir(f'user_data')
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(f'user_data/{args.login}')
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(f'user_data/{args.login}/{args.type}')
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(f'user_data/{args.login}/{args.type}/{args.name}')
-    except FileExistsError:
-        pass
-    try:
-        with open(path, 'wb') as f:
-            f.write(file)
-    except FileExistsError as e:
-        print("ОШИБКА СОХРАНЕНИЯ", e)
-        return "ОШИБКА СОХРАНЕНИЯ", path
-    return None, path
+        db.session.merge(data)
+        db.session.flush()
+        db.session.commit()
+    except DatabaseError:
+        print("ОШИБКА КОМИТА")
+        db.session.rollback()
+    return False, response
 
 
 class WaterDialog(Resource):
@@ -166,16 +139,17 @@ class WaterDialogSettings(Resource):
                     file = args['data_file']
                     s = 'cl' if args.type == 'classify' else 'pa'
                     if generate.correct_file(file.filename, rule=s):
-                        e, path = create_file(args, file)
-                        if e:
-                            result['response'] = e
+                        fi = file.read()
+                        print(fi)
+                        fi = fi.decode("utf-8")
+                        print(fi)
                         new_classifier = Classifier(
                             name=args.name,
                             admin_users=admins,
                             api_users=args.api_users,
                             type=args.type,
                             for_all=False if args.for_all == 'False' else True,
-                            data_file=path)
+                            data_file=json.loads(fi))
                         try:
                             db.session.add(new_classifier)
                             db.session.commit()
@@ -217,7 +191,6 @@ class WaterDialogSettings(Resource):
         pars.add_argument('admin_users', type=str, required=False, action='append')
         pars.add_argument('api_users', type=str, required=False, action='append')
         pars.add_argument('for_all', type=str, required=False)
-        pars.add_argument('data_file', type=FileStorage, required=False, location='files')
         args = pars.parse_args()
         if args.login and args.password:
             user = User.query.filter_by(login=args.login).first()
@@ -238,13 +211,6 @@ class WaterDialogSettings(Resource):
                     if args.for_all:
                         data.for_all = args.for_all
                         result['response'].append('for_all')
-                    s = 'cl' if data.type == 'classify' else 'pa'
-                    if args.data_file and generate.correct_file(args.data_file.filename, rule=s):
-                        e, path = create_file(args, args.data_file)
-                        if e:
-                            result['response'].append(e)
-                        else:
-                            result['response'].append('data_file')
                     try:
                         db.session.merge(data)
                         db.session.flush()
@@ -307,7 +273,7 @@ class User(db.Model, UserMixin):
 class Classifier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(16), nullable=False)
-    data_file = db.Column(db.String(255), nullable=False)
+    data_file = db.Column(db.PickleType, nullable=False)
     admin_users = db.Column(db.PickleType, nullable=False)
     api_users = db.Column(db.PickleType, nullable=True)
     for_all = db.Column(db.Boolean, default=True, nullable=True)
@@ -441,18 +407,14 @@ def new_classify(typ):
     if request.method == 'POST':
         f = request.form.to_dict()
         fi = request.files['file']
-        print(fi)
-        print(fi.read())
         if f['login'] and fi:
             if generate.correct_login(f['login']):
                 if generate.correct_file(fi.filename, rule=pattern_data['rule']):
-                    args = generate.ArgsFile(current_user.login, f['login'], typ)
-                    e, path = create_file(args, fi.read())
-                    if e:
-                        flash(e)
+                    fi = fi.read()
+                    fi = fi.decode("utf-8")
                     new_classifier = Classifier(
                         name=f['login'],
-                        data_file=f'user_data/{current_user.login}/{pattern_data["type"]}/{f["login"]}',
+                        data_file=json.loads(fi),
                         admin_users=[current_user.login],
                         type=typ)
                     try:
@@ -467,6 +429,7 @@ def new_classify(typ):
                     else:
                         usr.classifiers = str(new_classifier.id)
                     print(new_classifier.id)
+                    print(new_classifier.data_file)
                     print(usr.classifiers, '1--------')
                     try:
                         db.session.merge(usr)
@@ -475,10 +438,10 @@ def new_classify(typ):
                     except DatabaseError:
                         print("ОШИБКА КОМИТА")
                         db.session.rollback()
-                    try:
-                        print(open(path).read())
-                    except FileExistsError as e:
-                        print("ОШИБКА СОХРАНЕНИЯ", e)
+                    # try:
+                    #     print(open(path).read())
+                    # except FileExistsError as e:
+                    #     print("ОШИБКА СОХРАНЕНИЯ", e)
                     a = User.query.filter_by(login=current_user.login).first()
                     print(a.classifiers, '2--------')
                     return redirect(f'{url_for("config", name=new_classifier.name)}')
