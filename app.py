@@ -56,6 +56,7 @@ def create_file(args, file):
     except FileExistsError:
         pass
     try:
+        print(file.read(), '-----------------------------')
         file.save(path)
     except FileExistsError as e:
         print("ОШИБКА СОХРАНЕНИЯ", e)
@@ -441,6 +442,7 @@ def new_classify(typ):
         f = request.form.to_dict()
         fi = request.files['file']
         print(fi)
+        print(fi.read())
         if f['login'] and fi:
             if generate.correct_login(f['login']):
                 if generate.correct_file(fi.filename, rule=pattern_data['rule']):
@@ -474,7 +476,6 @@ def new_classify(typ):
                         print("ОШИБКА КОМИТА")
                         db.session.rollback()
                     try:
-                        fi.save(path)
                         print(open(path).read())
                     except FileExistsError as e:
                         print("ОШИБКА СОХРАНЕНИЯ", e)
