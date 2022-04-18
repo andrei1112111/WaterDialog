@@ -56,8 +56,8 @@ def create_file(args, file):
     except FileExistsError:
         pass
     try:
-        print(file.read(), '-----------------------------')
-        file.save(path)
+        with open(path, 'w') as f:
+            f.write(file)
     except FileExistsError as e:
         print("ОШИБКА СОХРАНЕНИЯ", e)
         return "ОШИБКА СОХРАНЕНИЯ", path
@@ -447,7 +447,7 @@ def new_classify(typ):
             if generate.correct_login(f['login']):
                 if generate.correct_file(fi.filename, rule=pattern_data['rule']):
                     args = generate.ArgsFile(current_user.login, f['login'], typ)
-                    e, path = create_file(args, fi)
+                    e, path = create_file(args, fi.read())
                     if e:
                         flash(e)
                     new_classifier = Classifier(

@@ -41,6 +41,7 @@ def load_json(path):
     with open(f'{path}/data.json', 'r', encoding='UTF-8') as file:
         print(path)
         print(file.read())
+        print(open(f'{path}/data.json').read())
         js = json.load(file)
     for i in js.keys():
         for j in js[i]:
