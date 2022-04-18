@@ -380,7 +380,7 @@ def logout():
 def menu():
     print(url_for('login'))
     if request.method == 'POST':
-        return redirect(f"{url_for('new_classify')}/{request.form['selector']}")
+        return redirect(f"http://water-dialog.herokuapp.com/new/{request.form['selector']}")
     a = db.session.query(User).filter(User.login == current_user.login)[0]
     if current_user.classifiers:
         print(a.classifiers)
