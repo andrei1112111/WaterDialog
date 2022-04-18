@@ -40,6 +40,10 @@ def go_api(data, text):
 def create_file(args, file):
     path = f'user_data/{args.login}/{args.type}/{args.name}/data.json'
     try:
+        os.mkdir(f'user_data')
+    except FileExistsError:
+        pass
+    try:
         os.mkdir(f'user_data/{args.login}')
     except FileExistsError:
         pass
