@@ -440,6 +440,7 @@ def new_classify(typ):
     if request.method == 'POST':
         f = request.form.to_dict()
         fi = request.files['file']
+        print(fi)
         if f['login'] and fi:
             if generate.correct_login(f['login']):
                 if generate.correct_file(fi.filename, rule=pattern_data['rule']):
@@ -474,6 +475,7 @@ def new_classify(typ):
                         db.session.rollback()
                     try:
                         fi.save(path)
+                        print(open(path + '/data.json').read())
                     except FileExistsError as e:
                         print("ОШИБКА СОХРАНЕНИЯ", e)
                     a = User.query.filter_by(login=current_user.login).first()
