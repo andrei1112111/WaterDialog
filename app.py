@@ -384,7 +384,7 @@ def logout():
 def menu():
     print(url_for('login'))
     if request.method == 'POST':
-        return redirect(url_for('new_classify', s=request.form['selector']))
+        return redirect(url_for('new_classify', typ=request.form['selector']))
     a = db.session.query(User).filter(User.login == current_user.login)[0]
     if current_user.classifiers:
         print(a.classifiers)
