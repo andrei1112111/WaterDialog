@@ -29,10 +29,8 @@ def correct_data(data, rule):
     return False
 
 
-def correct_file(file, rule):
+def correct_file(file):
     if '.json' in file and '.' not in file.replace('.json', ''):
-        # f = file if str(type(file)) == 'str' else file.read()
-        # if correct_data(f, rule):
         return True
 
 
@@ -42,8 +40,3 @@ def exists(path):
     except OSError:
         return False
     return True
-
-
-class ArgsFile:
-    def __init__(self, login, name, typ):
-        self.login, self.name, self.type = login, name, typ

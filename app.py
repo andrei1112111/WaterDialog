@@ -137,8 +137,7 @@ class WaterDialogSettings(Resource):
                 result['auth'] = True
                 if generate.correct_login(args.name):
                     file = args['data_file']
-                    s = 'cl' if args.type == 'classify' else 'pa'
-                    if generate.correct_file(file.filename, rule=s):
+                    if generate.correct_file(file.filename):
                         fi = file.read()
                         print(fi)
                         fi = fi.decode("utf-8")
@@ -379,7 +378,7 @@ def config(name):
 
 @app.route('/api/docs')
 def docs():
-    return '1'
+    return render_template('docs.html')
 
 
 @app.route('/new/<typ>', methods=['GET', 'POST'])
@@ -389,16 +388,14 @@ def new_classify(typ):
         pattern_data = {
             'type': 'classify',
             'files': ['carbon.png', 'carbon2.png', 'carbon6.png'],
-            'img': 'left: -160px;',
-            'rule': 'cl'
+            'img': 'left: -160px;'
         }
     elif typ == 'parser':
         pattern_data = {
             'type': 'parser',
             'files': ['carbon3.png', 'carbon4.png', 'carbon5.png'],
             'img': 'left: 80px;',
-            'rlist': [],
-            'rule': 'pa'
+            'rlist': []
         }
         for i in os.listdir():
             pattern_data['rlist'].append(i.replace('.json', ''))
@@ -409,7 +406,7 @@ def new_classify(typ):
         fi = request.files['file']
         if f['login'] and fi:
             if generate.correct_login(f['login']):
-                if generate.correct_file(fi.filename, rule=pattern_data['rule']):
+                if generate.correct_file(fi.filename):
                     fi = fi.read()
                     fi = fi.decode("utf-8")
                     new_classifier = Classifier(
@@ -438,10 +435,6 @@ def new_classify(typ):
                     except DatabaseError:
                         print("ОШИБКА КОМИТА")
                         db.session.rollback()
-                    # try:
-                    #     print(open(path).read())
-                    # except FileExistsError as e:
-                    #     print("ОШИБКА СОХРАНЕНИЯ", e)
                     a = User.query.filter_by(login=current_user.login).first()
                     print(a.classifiers, '2--------')
                     return redirect(f'{url_for("config", name=new_classifier.name)}')
@@ -478,8 +471,6 @@ def create_tables():
     db.create_all()
 
 
-# if __name__ == '__main__':
-#     app.run(debug=True)
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
