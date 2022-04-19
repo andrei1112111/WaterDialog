@@ -393,7 +393,7 @@ def new_classify(typ):
     elif typ == 'parser':
         pattern_data = {
             'type': 'parser',
-            'files': ['carbon3.png', 'carbon4.png', 'carbon5.png'],
+            'files': ['carbon3.png', 'carbon5.png', 'carbon4.png'],
             'img': 'left: 80px;',
             'rlist': []
         }
