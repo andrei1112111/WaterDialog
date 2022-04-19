@@ -1,6 +1,7 @@
 import requests
 
 data_get1 = {'login': '1', 'password': '1', 'id': '2', 'text': 'заказ номер 123: вишневый морс; яблочный компот'}
+# data_get1 = {'login': '1', 'password': '1', 'id': '3', 'text': 'Когда ты родился'}
 data_get2 = {'login': '1', 'password': '1', 'id': '3'}
 data_post = {'login': '1', 'password': '1', 'name': 'api_c_parser', 'api_users': ['1', '2'], 'for_all': False,
              'type': 'parser'}

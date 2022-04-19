@@ -17,14 +17,14 @@
                 <div class="card" style="border-radius: 15px;background-color: #4F6877;">
                     <div class="card-body text-center">
                         <div class="mt-3 mb-4">
-                            <img
+                            <img class="j"
                                     {% if data_f.type == 'parser' %}
                                         src="/static/img/parser_logo.jpg"
                                     {% else %}
                                         src="/static/img/classify_logo.jpg"
                                     {% endif %}
                                         class="rounded-circle img-fluid" style="width: 105px;"
-                            />
+                            alt="Json"/>
                         </div>
                         <h4 class="mb-2" style=" color: white; ">{{ data_f.name }}</h4>
                         <p class="text-secondary mb-4 " style=" color: white; ">@{{ data_f.type }}<span class="mx-2">
